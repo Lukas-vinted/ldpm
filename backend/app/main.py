@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import displays, groups, schedules
+
 app = FastAPI(
     title="LDPM API",
     description="Linux Display Power Management for Sony BRAVIA TVs",
@@ -15,6 +17,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(displays.router, prefix="/api/v1")
+app.include_router(groups.router, prefix="/api/v1")
+app.include_router(schedules.router, prefix="/api/v1")
 
 
 @app.get("/")

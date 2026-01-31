@@ -1,4 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import Dashboard from './pages/Dashboard'
+import DisplaysPage from './pages/DisplaysPage'
+import GroupsPage from './pages/GroupsPage'
+import SchedulesPage from './pages/SchedulesPage'
 import './App.css'
 
 function App() {
@@ -41,43 +45,6 @@ function App() {
         </main>
       </div>
     </Router>
-  )
-}
-
-function Dashboard() {
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
-      <p className="text-gray-600">Welcome to LDPM - Linux Display Power Management</p>
-      <p className="text-gray-500 mt-2">Manage Sony BRAVIA Pro TV power states and schedules.</p>
-    </div>
-  )
-}
-
-function DisplaysPage() {
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-2xl font-bold mb-4">Displays</h2>
-      <p className="text-gray-600">No displays configured yet. Add displays to get started.</p>
-    </div>
-  )
-}
-
-function GroupsPage() {
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-2xl font-bold mb-4">Groups</h2>
-      <p className="text-gray-600">No groups created yet. Create groups to manage multiple displays.</p>
-    </div>
-  )
-}
-
-function SchedulesPage() {
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-2xl font-bold mb-4">Schedules</h2>
-      <p className="text-gray-600">No schedules defined yet. Create schedules to automate power control.</p>
-    </div>
   )
 }
 

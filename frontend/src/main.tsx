@@ -1,13 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import App from './App.tsx'
+import './index.css'
 
-function App() {
-  return (
-    <div>
-      <h1>LDPM - Linux Display Power Management</h1>
-      <p>Test Infrastructure Ready</p>
-    </div>
-  )
-}
-
-export default App
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)

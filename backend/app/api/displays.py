@@ -11,11 +11,13 @@ Endpoints:
 - GET /api/v1/displays/{id}/status - Get display power status
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List
 from datetime import datetime
+import csv
+import io
 
 from app.db.database import get_db
 from app.db.models import Display
@@ -25,6 +27,8 @@ from app.schemas.display import (
     DisplayResponse,
     PowerRequest,
     PowerStatusResponse,
+    CSVImportResponse,
+    CSVImportRowError,
 )
 from app.adapters.bravia import BraviaAdapter
 
@@ -195,4 +199,115 @@ async def get_power_status(
         display_id=display_id,
         status=power_status,
         last_checked=datetime.utcnow(),
+    )
+
+
+@router.post("/import", response_model=CSVImportResponse)
+async def import_displays_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Import displays from CSV file.
+    
+    CSV format: ip_address,name,location
+    - If IP exists: update the display's name and location
+    - If IP doesn't exist: create new display with status="unknown"
+    """
+    if not file.filename or not file.filename.endswith('.csv'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be a CSV file",
+        )
+    
+    created_count = 0
+    updated_count = 0
+    failed_count = 0
+    failed_rows: List[CSVImportRowError] = []
+    total_processed = 0
+    
+    try:
+        contents = await file.read()
+        decoded = contents.decode('utf-8')
+        csv_reader = csv.DictReader(io.StringIO(decoded))
+        
+        expected_columns = {'ip_address', 'name', 'location'}
+        if csv_reader.fieldnames:
+            actual_columns = set(csv_reader.fieldnames)
+            if not expected_columns.issubset(actual_columns):
+                missing = expected_columns - actual_columns
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"CSV missing required columns: {', '.join(missing)}. Expected: ip_address,name,location",
+                )
+        
+        for row_num, row in enumerate(csv_reader, start=2):
+            total_processed += 1
+            
+            ip_address = row.get('ip_address', '').strip()
+            name = row.get('name', '').strip()
+            location = row.get('location', '').strip()
+            
+            if not ip_address:
+                failed_count += 1
+                failed_rows.append(CSVImportRowError(
+                    row_number=row_num,
+                    data=row,
+                    error="IP address is required"
+                ))
+                continue
+            
+            if not name:
+                failed_count += 1
+                failed_rows.append(CSVImportRowError(
+                    row_number=row_num,
+                    data=row,
+                    error="Display name is required"
+                ))
+                continue
+            
+            existing = db.query(Display).filter(Display.ip_address == ip_address).first()
+            
+            if existing:
+                existing.name = name
+                if location:
+                    existing.location = location
+                updated_count += 1
+            else:
+                new_display = Display(
+                    name=name,
+                    ip_address=ip_address,
+                    psk=None,
+                    location=location if location else None,
+                    tags={},
+                    status="unknown",
+                )
+                db.add(new_display)
+                created_count += 1
+        
+        db.commit()
+        
+    except UnicodeDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File encoding error. Please ensure the CSV is UTF-8 encoded.",
+        )
+    except csv.Error as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"CSV parsing error: {str(e)}",
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing CSV: {str(e)}",
+        )
+    
+    return CSVImportResponse(
+        created_count=created_count,
+        updated_count=updated_count,
+        failed_count=failed_count,
+        total_processed=total_processed,
+        failed_rows=failed_rows,
     )

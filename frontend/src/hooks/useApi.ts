@@ -79,6 +79,23 @@ export const usePowerControl = () => {
   });
 };
 
+export const useImportCSV = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data } = await apiClient.post('/displays/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['displays'] });
+    },
+  });
+};
+
 // ============================================
 // GROUP HOOKS
 // ============================================

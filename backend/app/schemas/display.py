@@ -10,7 +10,7 @@ Schemas:
 """
 
 from pydantic import BaseModel, Field, IPvAnyAddress
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 
@@ -105,5 +105,47 @@ class PowerStatusResponse(BaseModel):
                 "display_id": 1,
                 "status": "active",
                 "last_checked": "2026-01-31T12:00:00"
+            }
+        }
+
+
+class CSVImportRowError(BaseModel):
+    """Schema for a failed CSV row import."""
+    row_number: int
+    data: Dict[str, Any]
+    error: str
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "row_number": 5,
+                "data": {"ip_address": "invalid.ip", "name": "TV-5", "location": ""},
+                "error": "Invalid IP address format"
+            }
+        }
+
+
+class CSVImportResponse(BaseModel):
+    """Schema for CSV import response."""
+    created_count: int = Field(..., description="Number of new displays created")
+    updated_count: int = Field(..., description="Number of existing displays updated")
+    failed_count: int = Field(..., description="Number of rows that failed to import")
+    total_processed: int = Field(..., description="Total rows processed")
+    failed_rows: List[CSVImportRowError] = Field(default_factory=list, description="Details of failed rows")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "created_count": 8,
+                "updated_count": 2,
+                "failed_count": 1,
+                "total_processed": 11,
+                "failed_rows": [
+                    {
+                        "row_number": 5,
+                        "data": {"ip_address": "invalid.ip", "name": "TV-5", "location": ""},
+                        "error": "Invalid IP address format"
+                    }
+                ]
             }
         }

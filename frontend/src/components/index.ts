@@ -7,3 +7,5 @@ export { Modal } from './Modal';
 export { AddDisplayModal } from './AddDisplayModal';
 export { CreateGroupModal } from './CreateGroupModal';
 export { CreateScheduleModal } from './CreateScheduleModal';
+export { ImportCSVModal } from './ImportCSVModal';
+export { ConfirmDeleteModal } from './ConfirmDeleteModal';

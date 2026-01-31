@@ -1,5 +1,5 @@
 import React from 'react';
-import { Monitor } from 'lucide-react';
+import { Monitor, Trash2 } from 'lucide-react';
 import { Display } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { PowerButton } from './PowerButton';
@@ -7,18 +7,27 @@ import { PowerButton } from './PowerButton';
 interface DisplayCardProps {
   display: Display;
   onPowerToggle?: (id: number, state: 'on' | 'off') => void;
+  onDelete?: (id: number) => void;
   isLoading?: boolean;
 }
 
 export const DisplayCard: React.FC<DisplayCardProps> = ({ 
   display, 
-  onPowerToggle, 
+  onPowerToggle,
+  onDelete,
   isLoading = false 
 }) => {
   const handleToggle = () => {
     if (onPowerToggle) {
       const newState = display.status === 'active' ? 'off' : 'on';
       onPowerToggle(display.id, newState);
+    }
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(display.id);
     }
   };
 
@@ -43,6 +52,15 @@ export const DisplayCard: React.FC<DisplayCardProps> = ({
               isLoading={isLoading}
               onToggle={handleToggle}
             />
+          )}
+          {onDelete && (
+            <button
+              onClick={handleDelete}
+              className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              title="Delete display"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
           )}
         </div>
       </div>

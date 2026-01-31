@@ -2,11 +2,31 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { GroupCard } from '../components';
 import { CreateGroupModal } from '../components/CreateGroupModal';
-import { useGroups } from '../hooks/useApi';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { useGroups, useDeleteGroup } from '../hooks/useApi';
 
 export default function GroupsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; name: string } | null>(null);
   const { data: groups, isLoading, error } = useGroups();
+  const deleteMutation = useDeleteGroup();
+
+  const handleDeleteClick = (id: number) => {
+    const group = groups?.find(g => g.id === id);
+    if (group) {
+      setDeleteConfirm({ id, name: group.name });
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteConfirm) {
+      deleteMutation.mutate(deleteConfirm.id, {
+        onSuccess: () => {
+          setDeleteConfirm(null);
+        },
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -44,7 +64,11 @@ export default function GroupsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {groups.map((group) => (
-            <GroupCard key={group.id} group={group} />
+            <GroupCard 
+              key={group.id} 
+              group={group}
+              onDelete={handleDeleteClick}
+            />
           ))}
         </div>
       )}
@@ -52,6 +76,16 @@ export default function GroupsPage() {
       <CreateGroupModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+      />
+
+      <ConfirmDeleteModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Group"
+        message="Are you sure you want to delete this group? This will not delete the displays in the group."
+        itemName={deleteConfirm?.name}
+        isDeleting={deleteMutation.isPending}
       />
     </div>
   );

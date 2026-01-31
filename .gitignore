@@ -56,3 +56,10 @@ dist/
 *.swo
 *~
 .DS_Store
+
+# Runtime logs and PIDs
+*.log
+*.pid
+
+# OpenCode
+.sisyphus/

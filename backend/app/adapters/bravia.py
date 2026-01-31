@@ -311,61 +311,65 @@ class BraviaAdapter:
         self.rest = BraviaRestAdapter()
         self.simple_ip = BraviaSimpleIPAdapter()
 
-    async def get_power_status(self, ip: str, psk: str) -> PowerStatus:
+    async def get_power_status(self, ip: str, psk: str | None) -> PowerStatus:
         """Get TV power status (tries REST first, falls back to Simple IP).
         
         Args:
             ip: TV IP address
-            psk: Pre-Shared Key for REST authentication
+            psk: Pre-Shared Key for REST authentication (None = skip REST, use Simple IP only)
             
         Returns:
             "active" if TV is on, "standby" if off, "error" on failure
         """
-        # Try REST first
-        logger.debug(f"Trying REST API for {ip}")
-        status = await self.rest.get_power_status(ip, psk)
+        if psk:
+            logger.debug(f"Trying REST API for {ip}")
+            status = await self.rest.get_power_status(ip, psk)
+            
+            if status != "error":
+                logger.info(f"REST API succeeded for {ip}: {status}")
+                return status
+            
+            logger.info(f"REST API failed for {ip}, falling back to Simple IP")
+        else:
+            logger.debug(f"No PSK provided for {ip}, using Simple IP only")
         
-        if status != "error":
-            logger.info(f"REST API succeeded for {ip}: {status}")
-            return status
-        
-        # Fall back to Simple IP
-        logger.info(f"REST API failed for {ip}, falling back to Simple IP")
-        status = await self.simple_ip.get_power_status(ip, psk)
+        status = await self.simple_ip.get_power_status(ip, psk or "")
         
         if status != "error":
             logger.info(f"Simple IP succeeded for {ip}: {status}")
         else:
-            logger.error(f"Both protocols failed for {ip}")
+            logger.error(f"Both protocols failed for {ip}" if psk else f"Simple IP failed for {ip}")
         
         return status
 
-    async def set_power(self, ip: str, psk: str, on: bool) -> bool:
+    async def set_power(self, ip: str, psk: str | None, on: bool) -> bool:
         """Set TV power state (tries REST first, falls back to Simple IP).
         
         Args:
             ip: TV IP address
-            psk: Pre-Shared Key for REST authentication
+            psk: Pre-Shared Key for REST authentication (None = skip REST, use Simple IP only)
             on: True to power on, False to power off
             
         Returns:
             True if command succeeded, False on failure
         """
-        # Try REST first
-        logger.debug(f"Trying REST API set_power({on}) for {ip}")
-        success = await self.rest.set_power(ip, psk, on)
+        if psk:
+            logger.debug(f"Trying REST API set_power({on}) for {ip}")
+            success = await self.rest.set_power(ip, psk, on)
+            
+            if success:
+                logger.info(f"REST API set_power({on}) succeeded for {ip}")
+                return True
+            
+            logger.info(f"REST API set_power failed for {ip}, falling back to Simple IP")
+        else:
+            logger.debug(f"No PSK provided for {ip}, using Simple IP only")
         
-        if success:
-            logger.info(f"REST API set_power({on}) succeeded for {ip}")
-            return True
-        
-        # Fall back to Simple IP
-        logger.info(f"REST API set_power failed for {ip}, falling back to Simple IP")
-        success = await self.simple_ip.set_power(ip, psk, on)
+        success = await self.simple_ip.set_power(ip, psk or "", on)
         
         if success:
             logger.info(f"Simple IP set_power({on}) succeeded for {ip}")
         else:
-            logger.error(f"Both protocols failed for {ip} set_power({on})")
+            logger.error(f"Both protocols failed for {ip} set_power({on})" if psk else f"Simple IP failed for {ip} set_power({on})")
         
         return success

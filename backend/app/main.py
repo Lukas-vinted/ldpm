@@ -1,11 +1,44 @@
 from contextlib import asynccontextmanager
+import os
+import secrets
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from app.api import displays, groups, schedules
 from app.services.scheduler import SchedulerService
 from app.db.database import SessionLocal
+
+security = HTTPBasic()
+
+
+def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    """
+    Verify HTTP Basic authentication credentials.
+    
+    Compares credentials against environment variables ADMIN_USERNAME and ADMIN_PASSWORD.
+    Uses secrets.compare_digest to prevent timing attacks.
+    
+    Raises:
+        HTTPException: 401 Unauthorized if credentials don't match
+    
+    Returns:
+        str: Username if authentication successful
+    """
+    correct_username = os.getenv("ADMIN_USERNAME", "admin")
+    correct_password = os.getenv("ADMIN_PASSWORD", "admin123")
+    
+    is_correct_username = secrets.compare_digest(credentials.username, correct_username)
+    is_correct_password = secrets.compare_digest(credentials.password, correct_password)
+    
+    if not (is_correct_username and is_correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
 
 
 @asynccontextmanager
@@ -51,10 +84,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(displays.router, prefix="/api/v1")
-app.include_router(groups.router, prefix="/api/v1")
-app.include_router(schedules.router, prefix="/api/v1")
+app.include_router(displays.router, prefix="/api/v1", dependencies=[Depends(verify_credentials)])
+app.include_router(groups.router, prefix="/api/v1", dependencies=[Depends(verify_credentials)])
+app.include_router(schedules.router, prefix="/api/v1", dependencies=[Depends(verify_credentials)])
 
 
 @app.get("/")

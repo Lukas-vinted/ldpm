@@ -18,7 +18,7 @@ class DisplayCreate(BaseModel):
     """Schema for creating a new display."""
     name: str = Field(..., min_length=1, max_length=255, description="Display name")
     ip_address: str = Field(..., description="IP address of the display")
-    psk: str = Field(..., min_length=1, max_length=255, description="Pre-Shared Key for authentication")
+    psk: Optional[str] = Field(None, max_length=255, description="Pre-Shared Key for authentication (optional - only needed for REST API)")
     location: Optional[str] = Field(None, max_length=255, description="Physical location")
     tags: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Flexible JSON tags")
 
@@ -38,7 +38,7 @@ class DisplayUpdate(BaseModel):
     """Schema for updating an existing display."""
     name: Optional[str] = Field(None, min_length=1, max_length=255, description="Display name")
     ip_address: Optional[str] = Field(None, description="IP address of the display")
-    psk: Optional[str] = Field(None, min_length=1, max_length=255, description="Pre-Shared Key")
+    psk: Optional[str] = Field(None, max_length=255, description="Pre-Shared Key")
     location: Optional[str] = Field(None, max_length=255, description="Physical location")
     tags: Optional[Dict[str, Any]] = Field(None, description="Flexible JSON tags")
     status: Optional[str] = Field(None, description="Current status")
@@ -57,7 +57,7 @@ class DisplayResponse(BaseModel):
     id: int
     name: str
     ip_address: str
-    psk: str
+    psk: Optional[str]
     location: Optional[str]
     tags: Dict[str, Any]
     status: str

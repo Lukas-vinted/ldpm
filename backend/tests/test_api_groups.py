@@ -32,6 +32,7 @@ def mock_bravia_adapter():
 def client(db, mock_bravia_adapter):
     """Create FastAPI test client with dependency overrides."""
     from app.api.groups import get_bravia_adapter
+    from app.main import verify_credentials
     
     def override_get_db():
         try:
@@ -42,8 +43,12 @@ def client(db, mock_bravia_adapter):
     def override_get_bravia():
         return mock_bravia_adapter
     
+    def override_verify_credentials():
+        return "test_user"
+    
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_bravia_adapter] = override_get_bravia
+    app.dependency_overrides[verify_credentials] = override_verify_credentials
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

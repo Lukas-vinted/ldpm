@@ -9,13 +9,25 @@ export const apiClient = axios.create({
   },
 });
 
-// Response interceptor for error handling
+apiClient.interceptors.request.use((config) => {
+  const auth = localStorage.getItem('auth');
+  if (auth) {
+    config.headers.Authorization = `Basic ${auth}`;
+  }
+  return config;
+});
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth');
+      window.location.href = '/login';
+    }
     console.error('API Error:', error);
     return Promise.reject(error);
   }
 );
 
 export default apiClient;
+

@@ -3,3 +3,7 @@ export { PowerButton } from './PowerButton';
 export { DisplayCard } from './DisplayCard';
 export { GroupCard } from './GroupCard';
 export { ScheduleCard } from './ScheduleCard';
+export { Modal } from './Modal';
+export { AddDisplayModal } from './AddDisplayModal';
+export { CreateGroupModal } from './CreateGroupModal';
+export { CreateScheduleModal } from './CreateScheduleModal';

@@ -5,10 +5,10 @@ interface StatusBadgeProps {
 }
 
 const statusConfig = {
-  active: { bg: 'bg-green-100', text: 'text-green-800', label: 'Active' },
-  standby: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Standby' },
-  offline: { bg: 'bg-red-100', text: 'text-red-800', label: 'Offline' },
-  unknown: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Unknown' },
+  active: { bg: 'bg-green-100 dark:bg-green-900', text: 'text-green-800 dark:text-green-300', label: 'Active' },
+  standby: { bg: 'bg-yellow-100 dark:bg-yellow-900', text: 'text-yellow-800 dark:text-yellow-300', label: 'Standby' },
+  offline: { bg: 'bg-red-100 dark:bg-red-900', text: 'text-red-800 dark:text-red-300', label: 'Offline' },
+  unknown: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-800 dark:text-gray-300', label: 'Unknown' },
 };
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {

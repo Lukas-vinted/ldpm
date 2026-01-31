@@ -35,7 +35,7 @@ class Display(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     ip_address = Column(String(255), nullable=False, unique=True, index=True)
-    psk = Column(String(255), nullable=False)  # TECHNICAL DEBT: Encrypt PSK in production
+    psk = Column(String(255), nullable=True)  # Optional - Simple IP Control doesn't require auth
     location = Column(String(255), nullable=True)
     tags = Column(JSON, nullable=True, default={})
     status = Column(String(50), nullable=False, default="unknown")  # active|standby|offline|unknown

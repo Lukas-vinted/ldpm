@@ -20,13 +20,19 @@ def db():
 
 @pytest.fixture
 def client(db):
+    from app.main import verify_credentials
+    
     def override_get_db():
         try:
             yield db
         finally:
             pass
     
+    def override_verify_credentials():
+        return "test_user"
+    
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[verify_credentials] = override_verify_credentials
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

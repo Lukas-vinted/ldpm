@@ -7,7 +7,7 @@ Schemas:
 - ScheduleResponse: Response model for Schedule objects
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, Literal
 from datetime import datetime
 import re
@@ -31,22 +31,14 @@ class ScheduleCreate(BaseModel):
             raise ValueError("Cron expression must have 5 fields: minute hour day month weekday")
         return v
 
-    @field_validator("display_id", "group_id")
-    @classmethod
-    def validate_target(cls, v, info):
+    @model_validator(mode='after')
+    def validate_target(self):
         """Ensure exactly one of display_id or group_id is set."""
-        values = info.data
-        display_id = values.get("display_id")
-        group_id = values.get("group_id")
-        
-        # This validator runs per-field, so check after both are processed
-        if info.field_name == "group_id":
-            if display_id is None and group_id is None:
-                raise ValueError("Either display_id or group_id must be set")
-            if display_id is not None and group_id is not None:
-                raise ValueError("Cannot set both display_id and group_id")
-        
-        return v
+        if self.display_id is None and self.group_id is None:
+            raise ValueError("Either display_id or group_id must be set")
+        if self.display_id is not None and self.group_id is not None:
+            raise ValueError("Cannot set both display_id and group_id")
+        return self
 
     class Config:
         json_schema_extra = {

@@ -15,14 +15,33 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({ isOpen
   
   const [formData, setFormData] = useState({
     name: '',
-    cron_expression: '',
+    hour: '08',
+    minute: '00',
     action: 'on' as 'on' | 'off',
     targetType: 'display' as 'display' | 'group',
     display_id: '',
     group_id: '',
     enabled: true,
+    weekdays: {
+      monday: true,
+      tuesday: true,
+      wednesday: true,
+      thursday: true,
+      friday: true,
+      saturday: false,
+      sunday: false,
+    },
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const buildCronExpression = (): string => {
+    const selectedDays = Object.entries(formData.weekdays)
+      .map(([, enabled], index) => enabled ? index : -1)
+      .filter(day => day !== -1);
+
+    const dayOfWeek = selectedDays.length === 0 ? '*' : selectedDays.join(',');
+    return `${formData.minute} ${formData.hour} * * ${dayOfWeek}`;
+  };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -31,13 +50,9 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({ isOpen
       newErrors.name = 'Schedule name is required';
     }
 
-    if (!formData.cron_expression.trim()) {
-      newErrors.cron_expression = 'Cron expression is required';
-    } else {
-      const parts = formData.cron_expression.trim().split(/\s+/);
-      if (parts.length !== 5) {
-        newErrors.cron_expression = 'Cron expression must have 5 fields (minute hour day month day_of_week)';
-      }
+    const selectedDaysCount = Object.values(formData.weekdays).filter(Boolean).length;
+    if (selectedDaysCount === 0) {
+      newErrors.weekdays = 'Please select at least one day';
     }
 
     if (formData.targetType === 'display' && !formData.display_id) {
@@ -59,7 +74,7 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({ isOpen
 
     const payload: any = {
       name: formData.name.trim(),
-      cron_expression: formData.cron_expression.trim(),
+      cron_expression: buildCronExpression(),
       action: formData.action,
       enabled: formData.enabled,
     };
@@ -74,12 +89,22 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({ isOpen
       onSuccess: () => {
         setFormData({
           name: '',
-          cron_expression: '',
+          hour: '08',
+          minute: '00',
           action: 'on',
           targetType: 'display',
           display_id: '',
           group_id: '',
           enabled: true,
+          weekdays: {
+            monday: true,
+            tuesday: true,
+            wednesday: true,
+            thursday: true,
+            friday: true,
+            saturday: false,
+            sunday: false,
+          },
         });
         setErrors({});
         onClose();
@@ -90,23 +115,92 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({ isOpen
   const handleClose = () => {
     setFormData({
       name: '',
-      cron_expression: '',
+      hour: '08',
+      minute: '00',
       action: 'on',
       targetType: 'display',
       display_id: '',
       group_id: '',
       enabled: true,
+      weekdays: {
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: false,
+        sunday: false,
+      },
     });
     setErrors({});
     createMutation.reset();
     onClose();
   };
 
-  const cronExamples = [
-    { label: '8:00 AM Weekdays', value: '0 8 * * 1-5' },
-    { label: '6:00 PM Daily', value: '0 18 * * *' },
-    { label: '12:30 PM Sundays', value: '30 12 * * 0' },
+  const weekdayLabels = [
+    { key: 'monday', label: 'Mon' },
+    { key: 'tuesday', label: 'Tue' },
+    { key: 'wednesday', label: 'Wed' },
+    { key: 'thursday', label: 'Thu' },
+    { key: 'friday', label: 'Fri' },
+    { key: 'saturday', label: 'Sat' },
+    { key: 'sunday', label: 'Sun' },
   ];
+
+  const toggleWeekday = (day: string) => {
+    setFormData({
+      ...formData,
+      weekdays: {
+        ...formData.weekdays,
+        [day]: !formData.weekdays[day as keyof typeof formData.weekdays],
+      },
+    });
+  };
+
+  const selectWeekdays = () => {
+    setFormData({
+      ...formData,
+      weekdays: {
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: false,
+        sunday: false,
+      },
+    });
+  };
+
+  const selectWeekend = () => {
+    setFormData({
+      ...formData,
+      weekdays: {
+        monday: false,
+        tuesday: false,
+        wednesday: false,
+        thursday: false,
+        friday: false,
+        saturday: true,
+        sunday: true,
+      },
+    });
+  };
+
+  const selectAllDays = () => {
+    setFormData({
+      ...formData,
+      weekdays: {
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: true,
+        sunday: true,
+      },
+    });
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create Schedule">
@@ -127,33 +221,92 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({ isOpen
           {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
         </div>
 
-        {/* Cron Expression */}
+        {/* Time Picker */}
         <div>
-          <label htmlFor="cron" className="block text-sm font-medium text-slate-300 mb-1">
-            Cron Expression <span className="text-red-400">*</span>
+          <label className="block text-sm font-medium text-slate-300 mb-1">
+            Time <span className="text-red-400">*</span>
           </label>
-          <input
-            type="text"
-            id="cron"
-            value={formData.cron_expression}
-            onChange={(e) => setFormData({ ...formData, cron_expression: e.target.value })}
-            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-            placeholder="0 8 * * 1-5"
-          />
-          {errors.cron_expression && <p className="mt-1 text-sm text-red-400">{errors.cron_expression}</p>}
-          <p className="mt-1 text-xs text-slate-400">Format: minute hour day month day_of_week</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {cronExamples.map((example) => (
+          <div className="flex space-x-2">
+            <select
+              value={formData.hour}
+              onChange={(e) => setFormData({ ...formData, hour: e.target.value })}
+              className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {Array.from({ length: 24 }, (_, i) => {
+                const hour = i.toString().padStart(2, '0');
+                return (
+                  <option key={hour} value={hour}>
+                    {hour}
+                  </option>
+                );
+              })}
+            </select>
+            <span className="text-slate-300 text-xl leading-9">:</span>
+            <select
+              value={formData.minute}
+              onChange={(e) => setFormData({ ...formData, minute: e.target.value })}
+              className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {Array.from({ length: 60 }, (_, i) => {
+                const minute = i.toString().padStart(2, '0');
+                return (
+                  <option key={minute} value={minute}>
+                    {minute}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+          <p className="mt-1 text-xs text-slate-400">
+            Current selection: {formData.hour}:{formData.minute}
+          </p>
+        </div>
+
+        {/* Weekday Selector */}
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-2">
+            Days <span className="text-red-400">*</span>
+          </label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {weekdayLabels.map(({ key, label }) => (
               <button
-                key={example.value}
+                key={key}
                 type="button"
-                onClick={() => setFormData({ ...formData, cron_expression: example.value })}
-                className="text-xs px-2 py-1 bg-slate-700/50 text-slate-300 rounded hover:bg-slate-700 transition-colors"
+                onClick={() => toggleWeekday(key)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  formData.weekdays[key as keyof typeof formData.weekdays]
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
               >
-                {example.label}
+                {label}
               </button>
             ))}
           </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={selectWeekdays}
+              className="text-xs px-2 py-1 bg-slate-700/50 text-slate-300 rounded hover:bg-slate-700 transition-colors"
+            >
+              Weekdays
+            </button>
+            <button
+              type="button"
+              onClick={selectWeekend}
+              className="text-xs px-2 py-1 bg-slate-700/50 text-slate-300 rounded hover:bg-slate-700 transition-colors"
+            >
+              Weekend
+            </button>
+            <button
+              type="button"
+              onClick={selectAllDays}
+              className="text-xs px-2 py-1 bg-slate-700/50 text-slate-300 rounded hover:bg-slate-700 transition-colors"
+            >
+              Every Day
+            </button>
+          </div>
+          {errors.weekdays && <p className="mt-2 text-sm text-red-400">{errors.weekdays}</p>}
         </div>
 
         {/* Action */}

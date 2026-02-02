@@ -2,13 +2,16 @@
 Schedule API router - CRUD operations for power schedules.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
+import logging
 
 from app.db.database import get_db
 from app.db.models import Schedule
 from app.schemas.schedule import ScheduleCreate, ScheduleUpdate, ScheduleResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
@@ -21,7 +24,7 @@ async def list_schedules(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=ScheduleResponse, status_code=status.HTTP_201_CREATED)
-async def create_schedule(schedule_data: ScheduleCreate, db: Session = Depends(get_db)):
+async def create_schedule(schedule_data: ScheduleCreate, request: Request, db: Session = Depends(get_db)):
     """Create a new schedule."""
     schedule = Schedule(
         name=schedule_data.name,
@@ -34,6 +37,12 @@ async def create_schedule(schedule_data: ScheduleCreate, db: Session = Depends(g
     db.add(schedule)
     db.commit()
     db.refresh(schedule)
+    
+    # Reload scheduler to pick up new schedule
+    if hasattr(request.app.state, 'scheduler'):
+        logger.info(f"Reloading scheduler after creating schedule '{schedule.name}' (id={schedule.id})")
+        request.app.state.scheduler.reload_schedules()
+    
     return schedule
 
 
@@ -51,7 +60,7 @@ async def get_schedule(schedule_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{schedule_id}", response_model=ScheduleResponse)
 async def update_schedule(
-    schedule_id: int, schedule_data: ScheduleUpdate, db: Session = Depends(get_db)
+    schedule_id: int, schedule_data: ScheduleUpdate, request: Request, db: Session = Depends(get_db)
 ):
     """Update schedule by ID."""
     schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
@@ -67,11 +76,17 @@ async def update_schedule(
     
     db.commit()
     db.refresh(schedule)
+    
+    # Reload scheduler to pick up schedule changes
+    if hasattr(request.app.state, 'scheduler'):
+        logger.info(f"Reloading scheduler after updating schedule '{schedule.name}' (id={schedule.id})")
+        request.app.state.scheduler.reload_schedules()
+    
     return schedule
 
 
 @router.delete("/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
+async def delete_schedule(schedule_id: int, request: Request, db: Session = Depends(get_db)):
     """Delete schedule by ID."""
     schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
     if not schedule:
@@ -80,13 +95,20 @@ async def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
             detail=f"Schedule with ID {schedule_id} not found"
         )
     
+    schedule_name = schedule.name
     db.delete(schedule)
     db.commit()
+    
+    # Reload scheduler to remove deleted schedule
+    if hasattr(request.app.state, 'scheduler'):
+        logger.info(f"Reloading scheduler after deleting schedule '{schedule_name}' (id={schedule_id})")
+        request.app.state.scheduler.reload_schedules()
+    
     return None
 
 
 @router.post("/{schedule_id}/enable")
-async def enable_schedule(schedule_id: int, db: Session = Depends(get_db)):
+async def enable_schedule(schedule_id: int, request: Request, db: Session = Depends(get_db)):
     """Enable schedule."""
     schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
     if not schedule:
@@ -97,11 +119,17 @@ async def enable_schedule(schedule_id: int, db: Session = Depends(get_db)):
     
     schedule.enabled = True
     db.commit()
+    
+    # Reload scheduler to enable schedule
+    if hasattr(request.app.state, 'scheduler'):
+        logger.info(f"Reloading scheduler after enabling schedule '{schedule.name}' (id={schedule_id})")
+        request.app.state.scheduler.reload_schedules()
+    
     return {"message": f"Schedule {schedule_id} enabled"}
 
 
 @router.post("/{schedule_id}/disable")
-async def disable_schedule(schedule_id: int, db: Session = Depends(get_db)):
+async def disable_schedule(schedule_id: int, request: Request, db: Session = Depends(get_db)):
     """Disable schedule."""
     schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
     if not schedule:
@@ -112,4 +140,10 @@ async def disable_schedule(schedule_id: int, db: Session = Depends(get_db)):
     
     schedule.enabled = False
     db.commit()
+    
+    # Reload scheduler to disable schedule
+    if hasattr(request.app.state, 'scheduler'):
+        logger.info(f"Reloading scheduler after disabling schedule '{schedule.name}' (id={schedule_id})")
+        request.app.state.scheduler.reload_schedules()
+    
     return {"message": f"Schedule {schedule_id} disabled"}

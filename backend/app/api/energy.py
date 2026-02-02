@@ -159,3 +159,112 @@ async def calculate_energy_savings(
         end_date=end_date,
         displays=list(display_savings_map.values())
     )
+
+
+class DailyEnergyData(BaseModel):
+    date: str
+    value: float
+
+
+class EnergyHistoryResponse(BaseModel):
+    metric: str
+    days: int
+    data: List[DailyEnergyData]
+
+
+@router.get("/history", response_model=EnergyHistoryResponse)
+async def get_energy_history(
+    days: int = Query(30, description="Number of days to retrieve (default 30)"),
+    metric: str = Query("energy", description="Metric type: energy, cost, time, co2"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get historical energy data aggregated by day for chart visualization.
+    
+    Query Parameters:
+    - days: Number of days to retrieve (default 30)
+    - metric: Type of metric - "energy" (kWh), "cost" (EUR), "time" (hours), "co2" (kg)
+    
+    Returns:
+    - Array of daily aggregated values for the specified metric
+    """
+    end_date = datetime.utcnow()
+    start_date = end_date - timedelta(days=days)
+    
+    power_logs = db.query(PowerLog).filter(
+        PowerLog.timestamp >= start_date,
+        PowerLog.timestamp <= end_date
+    ).order_by(PowerLog.timestamp).all()
+    
+    from collections import defaultdict
+    logs_by_display = defaultdict(list)
+    for log in power_logs:
+        logs_by_display[log.display_id].append(log)
+    
+    daily_data = defaultdict(float)
+    
+    for disp_id, logs in logs_by_display.items():
+        last_off_time = None
+        
+        for log in logs:
+            if log.action == "off":
+                last_off_time = log.timestamp
+            elif log.action == "on" and last_off_time:
+                current_time = last_off_time
+                end_time = log.timestamp
+                
+                while current_time < end_time:
+                    day_key = current_time.date().isoformat()
+                    day_end = datetime.combine(current_time.date(), datetime.max.time())
+                    segment_end = min(end_time, day_end)
+                    hours_in_day = (segment_end - current_time).total_seconds() / 3600
+                    
+                    daily_data[day_key] += hours_in_day
+                    current_time = datetime.combine(current_time.date() + timedelta(days=1), datetime.min.time())
+                
+                last_off_time = None
+        
+        if last_off_time:
+            current_time = last_off_time
+            end_time = end_date
+            
+            while current_time < end_time:
+                day_key = current_time.date().isoformat()
+                day_end = datetime.combine(current_time.date(), datetime.max.time())
+                segment_end = min(end_time, day_end)
+                hours_in_day = (segment_end - current_time).total_seconds() / 3600
+                
+                daily_data[day_key] += hours_in_day
+                current_time = datetime.combine(current_time.date() + timedelta(days=1), datetime.min.time())
+    
+    result_data = []
+    current_date = start_date.date()
+    
+    while current_date <= end_date.date():
+        day_key = current_date.isoformat()
+        hours_off = daily_data.get(day_key, 0.0)
+        
+        if metric == "energy":
+            power_saved_watts = POWER_ON_WATTS - POWER_STANDBY_WATTS
+            value = (hours_off * power_saved_watts) / 1000
+        elif metric == "cost":
+            power_saved_watts = POWER_ON_WATTS - POWER_STANDBY_WATTS
+            energy_kwh = (hours_off * power_saved_watts) / 1000
+            value = energy_kwh * COST_PER_KWH
+        elif metric == "time":
+            value = hours_off
+        elif metric == "co2":
+            power_saved_watts = POWER_ON_WATTS - POWER_STANDBY_WATTS
+            energy_kwh = (hours_off * power_saved_watts) / 1000
+            value = energy_kwh * CO2_PER_KWH
+        else:
+            value = 0.0
+        
+        result_data.append(DailyEnergyData(date=day_key, value=round(value, 2)))
+        current_date += timedelta(days=1)
+    
+    return EnergyHistoryResponse(
+        metric=metric,
+        days=days,
+        data=result_data
+    )

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Leaf, Euro, Clock, TreePine, Calendar, Zap } from 'lucide-react';
+import { EnergyChartModal } from '../components/EnergyChartModal';
 
 interface DisplaySavings {
   display_id: number;
@@ -28,6 +29,17 @@ function EnergyDashboard() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [energyData, setEnergyData] = useState<EnergySavingsData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState<'energy' | 'cost' | 'time' | 'co2' | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openChartModal = (metric: 'energy' | 'cost' | 'time' | 'co2') => {
+    setSelectedMetric(metric);
+    setIsModalOpen(true);
+  };
+
+  const closeChartModal = () => {
+    setIsModalOpen(false);
+  };
 
   // Calculate date range based on selection
   const { startDate, endDate } = useMemo(() => {
@@ -192,7 +204,10 @@ function EnergyDashboard() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {/* Energy Saved Card */}
-              <div className="group bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-8 shadow-2xl shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:scale-105 transition-all duration-300">
+              <div 
+                onClick={() => openChartModal('energy')}
+                className="group bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-8 shadow-2xl shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:scale-105 transition-all duration-300 cursor-pointer"
+              >
                 <div className="flex items-center justify-between mb-6">
                   <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Leaf className="w-7 h-7 text-white" />
@@ -213,7 +228,10 @@ function EnergyDashboard() {
               </div>
 
               {/* Money Saved Card */}
-              <div className="group bg-gradient-to-br from-amber-500 to-orange-600 rounded-3xl p-8 shadow-2xl shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-105 transition-all duration-300">
+              <div 
+                onClick={() => openChartModal('cost')}
+                className="group bg-gradient-to-br from-amber-500 to-orange-600 rounded-3xl p-8 shadow-2xl shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-105 transition-all duration-300 cursor-pointer"
+              >
                 <div className="flex items-center justify-between mb-6">
                   <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Euro className="w-7 h-7 text-white" />
@@ -234,7 +252,10 @@ function EnergyDashboard() {
               </div>
 
               {/* Hours Off Card */}
-              <div className="group bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/40 hover:scale-105 transition-all duration-300">
+              <div 
+                onClick={() => openChartModal('time')}
+                className="group bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/40 hover:scale-105 transition-all duration-300 cursor-pointer"
+              >
                 <div className="flex items-center justify-between mb-6">
                   <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Clock className="w-7 h-7 text-white" />
@@ -255,7 +276,10 @@ function EnergyDashboard() {
               </div>
 
               {/* CO2 Reduced Card */}
-              <div className="group bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl p-8 shadow-2xl shadow-green-500/20 hover:shadow-green-500/40 hover:scale-105 transition-all duration-300">
+              <div 
+                onClick={() => openChartModal('co2')}
+                className="group bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl p-8 shadow-2xl shadow-green-500/20 hover:shadow-green-500/40 hover:scale-105 transition-all duration-300 cursor-pointer"
+              >
                 <div className="flex items-center justify-between mb-6">
                   <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <TreePine className="w-7 h-7 text-white" />
@@ -329,6 +353,16 @@ function EnergyDashboard() {
               </div>
             )}
           </>
+        )}
+
+        {/* Energy Chart Modal */}
+        {selectedMetric && (
+          <EnergyChartModal
+            isOpen={isModalOpen}
+            onClose={closeChartModal}
+            metric={selectedMetric}
+            days={30}
+          />
         )}
       </div>
     </div>

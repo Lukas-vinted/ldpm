@@ -4,7 +4,7 @@ export interface Display {
   ip_address: string;
   location: string;
   tags: Record<string, any>;
-  status: 'active' | 'standby' | 'offline' | 'unknown';
+  status: 'active' | 'standby' | 'offline' | 'unknown' | 'error';
   last_seen: string | null;
   created_at: string;
 }

@@ -35,6 +35,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onCl
     const payload = {
       name: formData.name.trim(),
       description: formData.description.trim() || '',
+      display_ids: [],
     };
 
     createMutation.mutate(payload, {

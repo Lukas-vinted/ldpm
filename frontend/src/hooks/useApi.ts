@@ -249,3 +249,42 @@ export const useToggleSchedule = () => {
     },
   });
 };
+
+// ============================================
+// ENERGY SAVINGS HOOKS
+// ============================================
+
+interface DisplaySavings {
+  display_id: number;
+  display_name: string;
+  total_hours_off: number;
+  energy_saved_kwh: number;
+  cost_saved_usd: number;
+  co2_reduced_kg: number;
+}
+
+interface EnergySavingsResponse {
+  total_hours_off: number;
+  energy_saved_kwh: number;
+  cost_saved_usd: number;
+  co2_reduced_kg: number;
+  start_date: string | null;
+  end_date: string | null;
+  displays: DisplaySavings[];
+}
+
+export const useEnergySavings = (startDate?: string, endDate?: string) => {
+  return useQuery({
+    queryKey: ['energy-savings', startDate, endDate],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      const { data } = await apiClient.get<EnergySavingsResponse>(
+        `/energy/savings?${params.toString()}`
+      );
+      return data;
+    },
+  });
+};

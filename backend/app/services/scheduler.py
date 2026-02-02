@@ -16,7 +16,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.orm import Session
 
-from app.db.models import Display, Schedule, ScheduleExecution
+from app.db.models import Display, Schedule, ScheduleExecution, PowerLog
 from app.adapters.bravia import BraviaAdapter
 
 logger = logging.getLogger(__name__)
@@ -175,7 +175,15 @@ class SchedulerService:
                 
                 result = await self.adapter.set_power(display.ip_address, display.psk, power_on)
                 
-                if not result:
+                if result:
+                    power_log = PowerLog(
+                        display_id=display.id,
+                        action="on" if power_on else "off",
+                        timestamp=datetime.utcnow(),
+                        source="schedule"
+                    )
+                    self.db.add(power_log)
+                else:
                     success = False
                     error_message = f"Failed to execute power command on display '{display.name}'"
                     logger.error(error_message)

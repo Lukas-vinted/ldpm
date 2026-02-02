@@ -20,7 +20,7 @@ import csv
 import io
 
 from app.db.database import get_db
-from app.db.models import Display
+from app.db.models import Display, PowerLog
 from app.schemas.display import (
     DisplayCreate,
     DisplayUpdate,
@@ -166,6 +166,15 @@ async def control_power(
     
     display.status = "active" if power_request.on else "standby"
     display.last_seen = datetime.utcnow()
+    
+    power_log = PowerLog(
+        display_id=display_id,
+        action="on" if power_request.on else "off",
+        timestamp=datetime.utcnow(),
+        source="manual"
+    )
+    db.add(power_log)
+    
     db.commit()
     
     return {

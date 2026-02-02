@@ -161,3 +161,32 @@ class ScheduleExecution(Base):
     
     def __repr__(self):
         return f"<ScheduleExecution(id={self.id}, schedule_id={self.schedule_id}, success={self.success})>"
+
+
+class PowerLog(Base):
+    """
+    PowerLog model - tracks power state changes for energy savings calculation.
+    
+    Records every power on/off event to calculate total time displays were off
+    and estimate energy savings.
+    
+    Attributes:
+        id: Primary key
+        display_id: Foreign key to Display
+        action: Power action - "on" or "off"
+        timestamp: When the power state changed
+        source: Source of change - "manual", "schedule", or "api"
+    """
+    __tablename__ = "power_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    display_id = Column(Integer, ForeignKey("displays.id", ondelete="CASCADE"), nullable=False, index=True)
+    action = Column(String(10), nullable=False)
+    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    source = Column(String(50), nullable=False, default="manual")
+    
+    # Relationships
+    display = relationship("Display")
+    
+    def __repr__(self):
+        return f"<PowerLog(id={self.id}, display_id={self.display_id}, action={self.action}, timestamp={self.timestamp})>"

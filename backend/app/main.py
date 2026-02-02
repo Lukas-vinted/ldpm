@@ -7,7 +7,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-from app.api import displays, groups, schedules
+from app.api import displays, groups, schedules, energy
 from app.services.scheduler import SchedulerService
 from app.db.database import SessionLocal
 
@@ -95,6 +95,7 @@ app.add_middleware(
 app.include_router(displays.router, prefix="/api/v1", dependencies=[Depends(verify_credentials)])
 app.include_router(groups.router, prefix="/api/v1", dependencies=[Depends(verify_credentials)])
 app.include_router(schedules.router, prefix="/api/v1", dependencies=[Depends(verify_credentials)])
+app.include_router(energy.router, prefix="/api/v1", dependencies=[Depends(verify_credentials)])
 
 
 @app.get("/")

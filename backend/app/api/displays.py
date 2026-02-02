@@ -18,6 +18,7 @@ from typing import List
 from datetime import datetime
 import csv
 import io
+import asyncio
 
 from app.db.database import get_db
 from app.db.models import Display, PowerLog
@@ -41,9 +42,28 @@ def get_bravia_adapter():
 
 
 @router.get("", response_model=List[DisplayResponse])
-async def list_displays(db: Session = Depends(get_db)):
-    """List all displays."""
+async def list_displays(
+    db: Session = Depends(get_db),
+    bravia: BraviaAdapter = Depends(get_bravia_adapter),
+    fetch_status: bool = True
+):
+    """
+    List all displays with optional status polling.
+    
+    Query params:
+    - fetch_status: If true, polls power status for all displays (default: true)
+    """
     displays = db.query(Display).all()
+    
+    if fetch_status:
+        async def update_display_status(display: Display):
+            power_status = await bravia.get_power_status(display.ip_address, display.psk)
+            display.status = power_status
+            display.last_seen = datetime.utcnow()
+        
+        await asyncio.gather(*[update_display_status(d) for d in displays], return_exceptions=True)
+        db.commit()
+    
     return displays
 
 

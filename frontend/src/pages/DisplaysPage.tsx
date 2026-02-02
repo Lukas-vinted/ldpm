@@ -1,18 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Upload } from 'lucide-react';
 import { DisplayCard } from '../components';
 import { AddDisplayModal } from '../components/AddDisplayModal';
 import { ImportCSVModal } from '../components/ImportCSVModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
-import { useDisplays, usePowerControl, useDeleteDisplay } from '../hooks/useApi';
+import { useDisplays, useDisplaysWithStatus, usePowerControl, useDeleteDisplay } from '../hooks/useApi';
 
 export default function DisplaysPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; name: string } | null>(null);
   const { data: displays, isLoading, error } = useDisplays();
+  const { refetch: refetchWithStatus } = useDisplaysWithStatus();
   const powerMutation = usePowerControl();
   const deleteMutation = useDeleteDisplay();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      refetchWithStatus();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [refetchWithStatus]);
 
   const handlePowerToggle = (id: number, state: 'on' | 'off') => {
     powerMutation.mutate({ id, state });

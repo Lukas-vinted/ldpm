@@ -9,3 +9,4 @@ export { CreateGroupModal } from './CreateGroupModal';
 export { CreateScheduleModal } from './CreateScheduleModal';
 export { ImportCSVModal } from './ImportCSVModal';
 export { ConfirmDeleteModal } from './ConfirmDeleteModal';
+export { ManageGroupDisplaysModal } from './ManageGroupDisplaysModal';

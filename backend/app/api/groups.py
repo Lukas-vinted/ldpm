@@ -31,9 +31,11 @@ async def list_groups(db: Session = Depends(get_db)):
     groups = db.query(Group).all()
     result = []
     for group in groups:
-        display_count = db.query(DisplayGroup).filter(DisplayGroup.group_id == group.id).count()
+        display_groups = db.query(DisplayGroup).filter(DisplayGroup.group_id == group.id).all()
+        display_ids = [dg.display_id for dg in display_groups]
         group_data = GroupResponse.model_validate(group)
-        group_data.display_count = display_count
+        group_data.display_count = len(display_ids)
+        group_data.display_ids = display_ids
         result.append(group_data)
     return result
 
@@ -68,9 +70,11 @@ async def get_group(group_id: int, db: Session = Depends(get_db)):
             detail=f"Group with ID {group_id} not found"
         )
     
-    display_count = db.query(DisplayGroup).filter(DisplayGroup.group_id == group_id).count()
+    display_groups = db.query(DisplayGroup).filter(DisplayGroup.group_id == group_id).all()
+    display_ids = [dg.display_id for dg in display_groups]
     result = GroupResponse.model_validate(group)
-    result.display_count = display_count
+    result.display_count = len(display_ids)
+    result.display_ids = display_ids
     return result
 
 
@@ -91,9 +95,11 @@ async def update_group(group_id: int, group_data: GroupUpdate, db: Session = Dep
     db.commit()
     db.refresh(group)
     
-    display_count = db.query(DisplayGroup).filter(DisplayGroup.group_id == group_id).count()
+    display_groups = db.query(DisplayGroup).filter(DisplayGroup.group_id == group_id).all()
+    display_ids = [dg.display_id for dg in display_groups]
     result = GroupResponse.model_validate(group)
-    result.display_count = display_count
+    result.display_count = len(display_ids)
+    result.display_ids = display_ids
     return result
 
 
@@ -140,9 +146,11 @@ async def add_displays(group_id: int, request: AddDisplaysRequest, db: Session =
     
     db.commit()
     
-    display_count = db.query(DisplayGroup).filter(DisplayGroup.group_id == group_id).count()
+    display_groups = db.query(DisplayGroup).filter(DisplayGroup.group_id == group_id).all()
+    display_ids = [dg.display_id for dg in display_groups]
     result = GroupResponse.model_validate(group)
-    result.display_count = display_count
+    result.display_count = len(display_ids)
+    result.display_ids = display_ids
     return result
 
 

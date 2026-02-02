@@ -50,6 +50,7 @@ class GroupResponse(BaseModel):
     description: Optional[str]
     created_at: datetime
     display_count: int = Field(default=0, description="Number of displays in this group")
+    display_ids: List[int] = Field(default_factory=list, description="IDs of displays in this group")
 
     class Config:
         from_attributes = True
@@ -59,7 +60,8 @@ class GroupResponse(BaseModel):
                 "name": "Conference Rooms",
                 "description": "All conference room displays",
                 "created_at": "2026-01-01T08:00:00",
-                "display_count": 5
+                "display_count": 5,
+                "display_ids": [1, 2, 3, 4, 5]
             }
         }
 

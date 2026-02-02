@@ -14,6 +14,7 @@ export interface Group {
   name: string;
   description: string;
   display_count: number;
+  display_ids: number[];
   created_at: string;
 }
 

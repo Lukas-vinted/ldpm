@@ -1,18 +1,26 @@
 import React from 'react';
-import { Users, Trash2 } from 'lucide-react';
+import { Users, Trash2, Settings } from 'lucide-react';
 import { Group } from '../types';
 
 interface GroupCardProps {
   group: Group;
   onClick?: () => void;
   onDelete?: (id: number) => void;
+  onManage?: (id: number) => void;
 }
 
-export const GroupCard: React.FC<GroupCardProps> = ({ group, onClick, onDelete }) => {
+export const GroupCard: React.FC<GroupCardProps> = ({ group, onClick, onDelete, onManage }) => {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onDelete) {
       onDelete(group.id);
+    }
+  };
+
+  const handleManage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onManage) {
+      onManage(group.id);
     }
   };
 
@@ -36,15 +44,26 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, onClick, onDelete }
             </p>
           </div>
         </div>
-        {onDelete && (
-          <button
-            onClick={handleDelete}
-            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-            title="Delete group"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onManage && (
+            <button
+              onClick={handleManage}
+              className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Manage displays"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={handleDelete}
+              className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              title="Delete group"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

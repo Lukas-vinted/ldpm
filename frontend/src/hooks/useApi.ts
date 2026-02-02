@@ -10,10 +10,22 @@ export const useDisplays = () => {
   return useQuery({
     queryKey: ['displays'],
     queryFn: async () => {
-      const { data } = await apiClient.get<Display[]>('/displays');
+      const { data } = await apiClient.get<Display[]>('/displays?fetch_status=false');
       return data;
     },
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchInterval: 30000,
+  });
+};
+
+export const useDisplaysWithStatus = () => {
+  return useQuery({
+    queryKey: ['displays-with-status'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<Display[]>('/displays?fetch_status=true');
+      return data;
+    },
+    refetchInterval: false,
+    staleTime: 0,
   });
 };
 
@@ -155,6 +167,34 @@ export const useDeleteGroup = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+};
+
+export const useAddDisplaysToGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, displayIds }: { groupId: number; displayIds: number[] }) => {
+      const { data } = await apiClient.post(`/groups/${groupId}/displays`, { display_ids: displayIds });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['displays'] });
+    },
+  });
+};
+
+export const useRemoveDisplaysFromGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, displayIds }: { groupId: number; displayIds: number[] }) => {
+      const { data } = await apiClient.delete(`/groups/${groupId}/displays`, { data: { display_ids: displayIds } });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['displays'] });
     },
   });
 };

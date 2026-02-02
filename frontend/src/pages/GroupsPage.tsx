@@ -3,11 +3,14 @@ import { Plus } from 'lucide-react';
 import { GroupCard } from '../components';
 import { CreateGroupModal } from '../components/CreateGroupModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { ManageGroupDisplaysModal } from '../components/ManageGroupDisplaysModal';
 import { useGroups, useDeleteGroup } from '../hooks/useApi';
+import { Group } from '../types';
 
 export default function GroupsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; name: string } | null>(null);
+  const [manageGroup, setManageGroup] = useState<Group | null>(null);
   const { data: groups, isLoading, error } = useGroups();
   const deleteMutation = useDeleteGroup();
 
@@ -25,6 +28,13 @@ export default function GroupsPage() {
           setDeleteConfirm(null);
         },
       });
+    }
+  };
+
+  const handleManageClick = (id: number) => {
+    const group = groups?.find(g => g.id === id);
+    if (group) {
+      setManageGroup(group);
     }
   };
 
@@ -68,6 +78,7 @@ export default function GroupsPage() {
               key={group.id} 
               group={group}
               onDelete={handleDeleteClick}
+              onManage={handleManageClick}
             />
           ))}
         </div>
@@ -86,6 +97,13 @@ export default function GroupsPage() {
         message="Are you sure you want to delete this group? This will not delete the displays in the group."
         itemName={deleteConfirm?.name}
         isDeleting={deleteMutation.isPending}
+      />
+
+      <ManageGroupDisplaysModal
+        isOpen={!!manageGroup}
+        onClose={() => setManageGroup(null)}
+        group={manageGroup}
+        currentDisplayIds={manageGroup?.display_ids || []}
       />
     </div>
   );

@@ -101,7 +101,6 @@ class SchedulerService:
                 # Parse cron expression
                 trigger = self.parse_cron(schedule.cron_expression)
                 
-                # Add job to scheduler
                 self.scheduler.add_job(
                     self.execute_schedule,
                     trigger=trigger,
@@ -110,12 +109,18 @@ class SchedulerService:
                     replace_existing=True
                 )
                 
-                target_type = "display" if schedule.display_id else "group"
-                target_id = schedule.display_id or schedule.group_id
+                display_count = len(schedule.schedule_displays)
+                group_count = len(schedule.schedule_groups)
+                targets = []
+                if display_count > 0:
+                    targets.append(f"{display_count} display(s)")
+                if group_count > 0:
+                    targets.append(f"{group_count} group(s)")
+                target_str = " + ".join(targets)
                 
                 logger.info(
                     f"Loaded schedule '{schedule.name}' (id={schedule.id}): "
-                    f"{schedule.action} {target_type} {target_id} at {schedule.cron_expression}"
+                    f"{schedule.action} {target_str} at {schedule.cron_expression}"
                 )
                 
             except ValueError as e:
@@ -128,7 +133,7 @@ class SchedulerService:
         """
         Execute a schedule by running the power command on target displays.
         
-        Handles both display-level and group-level schedules.
+        Handles multiple displays and groups.
         Logs execution results to ScheduleExecution table.
         
         Args:
@@ -136,33 +141,32 @@ class SchedulerService:
         """
         logger.info(f"Executing schedule {schedule_id}")
         
-        # Fetch schedule from database
         schedule = self.db.query(Schedule).filter(Schedule.id == schedule_id).first()
         
         if not schedule:
             logger.error(f"Schedule {schedule_id} not found")
             return
         
-        # Determine power state from action
         power_on = schedule.action.lower() == "on"
         
-        # Collect displays to control
         displays_to_control = []
         
-        if schedule.display_id:
-            # Single display schedule
-            display = self.db.query(Display).filter(Display.id == schedule.display_id).first()
+        for schedule_display in schedule.schedule_displays:
+            display = schedule_display.display
             if display:
                 displays_to_control.append(display)
             else:
-                logger.error(f"Display {schedule.display_id} not found for schedule {schedule_id}")
+                logger.error(f"Display not found for schedule {schedule_id}")
         
-        elif schedule.group_id:
-            # Group schedule - get all displays in group
-            for dg in schedule.group.display_groups:
-                displays_to_control.append(dg.display)
+        for schedule_group in schedule.schedule_groups:
+            group = schedule_group.group
+            if group:
+                for dg in group.display_groups:
+                    if dg.display not in displays_to_control:
+                        displays_to_control.append(dg.display)
+            else:
+                logger.error(f"Group not found for schedule {schedule_id}")
         
-        # Execute power commands
         success = True
         error_message = None
         

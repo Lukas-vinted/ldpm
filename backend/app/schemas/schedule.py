@@ -8,7 +8,7 @@ Schemas:
 """
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from datetime import datetime
 import re
 
@@ -16,8 +16,8 @@ import re
 class ScheduleCreate(BaseModel):
     """Schema for creating a new schedule."""
     name: str = Field(..., min_length=1, max_length=255, description="Schedule name")
-    display_id: Optional[int] = Field(None, description="Target display ID (mutually exclusive with group_id)")
-    group_id: Optional[int] = Field(None, description="Target group ID (mutually exclusive with display_id)")
+    display_ids: List[int] = Field(default_factory=list, description="Target display IDs")
+    group_ids: List[int] = Field(default_factory=list, description="Target group IDs")
     action: Literal["on", "off"] = Field(..., description="Power action: on or off")
     cron_expression: str = Field(..., min_length=1, max_length=255, description="Cron expression")
     enabled: bool = Field(default=True, description="Whether schedule is active")
@@ -33,20 +33,19 @@ class ScheduleCreate(BaseModel):
 
     @model_validator(mode='after')
     def validate_target(self):
-        """Ensure exactly one of display_id or group_id is set."""
-        if self.display_id is None and self.group_id is None:
-            raise ValueError("Either display_id or group_id must be set")
-        if self.display_id is not None and self.group_id is not None:
-            raise ValueError("Cannot set both display_id and group_id")
+        """Ensure at least one target (display or group) is set."""
+        if not self.display_ids and not self.group_ids:
+            raise ValueError("At least one display_id or group_id must be set")
         return self
 
     class Config:
         json_schema_extra = {
             "example": {
                 "name": "Morning Power On",
-                "group_id": 1,
+                "display_ids": [1, 2, 3],
+                "group_ids": [1],
                 "action": "on",
-                "cron_expression": "0 7 * * MON-FRI",
+                "cron_expression": "0 7 * * 1-5",
                 "enabled": True
             }
         }
@@ -55,8 +54,8 @@ class ScheduleCreate(BaseModel):
 class ScheduleUpdate(BaseModel):
     """Schema for updating an existing schedule."""
     name: Optional[str] = Field(None, min_length=1, max_length=255, description="Schedule name")
-    display_id: Optional[int] = Field(None, description="Target display ID")
-    group_id: Optional[int] = Field(None, description="Target group ID")
+    display_ids: Optional[List[int]] = Field(None, description="Target display IDs")
+    group_ids: Optional[List[int]] = Field(None, description="Target group IDs")
     action: Optional[Literal["on", "off"]] = Field(None, description="Power action")
     cron_expression: Optional[str] = Field(None, description="Cron expression")
     enabled: Optional[bool] = Field(None, description="Whether schedule is active")
@@ -76,7 +75,8 @@ class ScheduleUpdate(BaseModel):
         json_schema_extra = {
             "example": {
                 "name": "Updated Morning Power On",
-                "cron_expression": "0 8 * * MON-FRI"
+                "display_ids": [1, 2],
+                "cron_expression": "0 8 * * 1-5"
             }
         }
 
@@ -85,8 +85,8 @@ class ScheduleResponse(BaseModel):
     """Schema for Schedule response (returned by all endpoints)."""
     id: int
     name: str
-    display_id: Optional[int]
-    group_id: Optional[int]
+    display_ids: List[int]
+    group_ids: List[int]
     action: str
     cron_expression: str
     enabled: bool
@@ -98,10 +98,10 @@ class ScheduleResponse(BaseModel):
             "example": {
                 "id": 1,
                 "name": "Morning Power On",
-                "display_id": None,
-                "group_id": 1,
+                "display_ids": [1, 2, 3],
+                "group_ids": [1],
                 "action": "on",
-                "cron_expression": "0 7 * * MON-FRI",
+                "cron_expression": "0 7 * * 1-5",
                 "enabled": True,
                 "created_at": "2026-01-01T08:00:00"
             }

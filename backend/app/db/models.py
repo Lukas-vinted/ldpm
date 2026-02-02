@@ -42,9 +42,7 @@ class Display(Base):
     last_seen = Column(DateTime, nullable=False, default=datetime.utcnow)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     
-    # Relationships
     display_groups = relationship("DisplayGroup", back_populates="display", cascade="all, delete-orphan")
-    schedules = relationship("Schedule", back_populates="display", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Display(id={self.id}, name={self.name}, ip={self.ip_address}, status={self.status})>"
@@ -67,9 +65,7 @@ class Group(Base):
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     
-    # Relationships
     display_groups = relationship("DisplayGroup", back_populates="group", cascade="all, delete-orphan")
-    schedules = relationship("Schedule", back_populates="group", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Group(id={self.id}, name={self.name})>"
@@ -98,37 +94,70 @@ class DisplayGroup(Base):
         return f"<DisplayGroup(display_id={self.display_id}, group_id={self.group_id})>"
 
 
+class ScheduleDisplay(Base):
+    """
+    Junction table for Schedule ↔ Display many-to-many relationship.
+    
+    Allows a schedule to target multiple displays.
+    """
+    __tablename__ = "schedule_displays"
+    
+    schedule_id = Column(Integer, ForeignKey("schedules.id", ondelete="CASCADE"), primary_key=True)
+    display_id = Column(Integer, ForeignKey("displays.id", ondelete="CASCADE"), primary_key=True)
+    
+    schedule = relationship("Schedule", back_populates="schedule_displays")
+    display = relationship("Display")
+    
+    def __repr__(self):
+        return f"<ScheduleDisplay(schedule_id={self.schedule_id}, display_id={self.display_id})>"
+
+
+class ScheduleGroup(Base):
+    """
+    Junction table for Schedule ↔ Group many-to-many relationship.
+    
+    Allows a schedule to target multiple groups.
+    """
+    __tablename__ = "schedule_groups"
+    
+    schedule_id = Column(Integer, ForeignKey("schedules.id", ondelete="CASCADE"), primary_key=True)
+    group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), primary_key=True)
+    
+    schedule = relationship("Schedule", back_populates="schedule_groups")
+    group = relationship("Group")
+    
+    def __repr__(self):
+        return f"<ScheduleGroup(schedule_id={self.schedule_id}, group_id={self.group_id})>"
+
+
 class Schedule(Base):
     """
-    Schedule model - power control schedule for displays or groups.
+    Schedule model - power control schedule for displays and/or groups.
     
-    A schedule targets EITHER a single display OR a group (one of display_id/group_id is null).
+    A schedule can target multiple displays AND/OR multiple groups via junction tables.
     Uses cron expressions for flexibility (e.g., "0 7 * * MON-FRI" = 7 AM on weekdays).
     
     Attributes:
         id: Primary key
         name: Schedule name (e.g., "Morning Power On", "Evening Shutdown")
-        display_id: Foreign key to Display (null if targeting group)
-        group_id: Foreign key to Group (null if targeting display)
         action: Power action - "on" or "off"
         cron_expression: Cron format string (e.g., "0 7 * * *" for 7 AM daily)
         enabled: Whether schedule is active
         created_at: Timestamp when schedule was created
+        schedule_displays: Many-to-many relationship to Display via junction table
+        schedule_groups: Many-to-many relationship to Group via junction table
     """
     __tablename__ = "schedules"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
-    display_id = Column(Integer, ForeignKey("displays.id", ondelete="CASCADE"), nullable=True, index=True)
-    group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=True, index=True)
-    action = Column(String(10), nullable=False)  # "on" or "off"
+    action = Column(String(10), nullable=False)
     cron_expression = Column(String(255), nullable=False)
     enabled = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     
-    # Relationships
-    display = relationship("Display", back_populates="schedules")
-    group = relationship("Group", back_populates="schedules")
+    schedule_displays = relationship("ScheduleDisplay", back_populates="schedule", cascade="all, delete-orphan")
+    schedule_groups = relationship("ScheduleGroup", back_populates="schedule", cascade="all, delete-orphan")
     executions = relationship("ScheduleExecution", back_populates="schedule", cascade="all, delete-orphan")
     
     def __repr__(self):

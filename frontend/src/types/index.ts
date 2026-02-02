@@ -24,7 +24,7 @@ export interface Schedule {
   cron_expression: string;
   action: 'on' | 'off';
   enabled: boolean;
-  display_id: number | null;
-  group_id: number | null;
+  display_ids: number[];
+  group_ids: number[];
   created_at: string;
 }

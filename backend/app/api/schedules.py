@@ -8,7 +8,7 @@ from typing import List
 import logging
 
 from app.db.database import get_db
-from app.db.models import Schedule
+from app.db.models import Schedule, ScheduleDisplay, ScheduleGroup
 from app.schemas.schedule import ScheduleCreate, ScheduleUpdate, ScheduleResponse
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,19 @@ router = APIRouter(prefix="/schedules", tags=["schedules"])
 async def list_schedules(db: Session = Depends(get_db)):
     """List all schedules."""
     schedules = db.query(Schedule).all()
-    return schedules
+    result = []
+    for schedule in schedules:
+        result.append({
+            "id": schedule.id,
+            "name": schedule.name,
+            "display_ids": [sd.display_id for sd in schedule.schedule_displays],
+            "group_ids": [sg.group_id for sg in schedule.schedule_groups],
+            "action": schedule.action,
+            "cron_expression": schedule.cron_expression,
+            "enabled": schedule.enabled,
+            "created_at": schedule.created_at
+        })
+    return result
 
 
 @router.post("", response_model=ScheduleResponse, status_code=status.HTTP_201_CREATED)
@@ -28,13 +40,21 @@ async def create_schedule(schedule_data: ScheduleCreate, request: Request, db: S
     """Create a new schedule."""
     schedule = Schedule(
         name=schedule_data.name,
-        display_id=schedule_data.display_id,
-        group_id=schedule_data.group_id,
         action=schedule_data.action,
         cron_expression=schedule_data.cron_expression,
         enabled=schedule_data.enabled
     )
     db.add(schedule)
+    db.flush()
+    
+    for display_id in schedule_data.display_ids:
+        schedule_display = ScheduleDisplay(schedule_id=schedule.id, display_id=display_id)
+        db.add(schedule_display)
+    
+    for group_id in schedule_data.group_ids:
+        schedule_group = ScheduleGroup(schedule_id=schedule.id, group_id=group_id)
+        db.add(schedule_group)
+    
     db.commit()
     db.refresh(schedule)
     
@@ -43,7 +63,16 @@ async def create_schedule(schedule_data: ScheduleCreate, request: Request, db: S
         logger.info(f"Reloading scheduler after creating schedule '{schedule.name}' (id={schedule.id})")
         request.app.state.scheduler.reload_schedules()
     
-    return schedule
+    return {
+        "id": schedule.id,
+        "name": schedule.name,
+        "display_ids": [sd.display_id for sd in schedule.schedule_displays],
+        "group_ids": [sg.group_id for sg in schedule.schedule_groups],
+        "action": schedule.action,
+        "cron_expression": schedule.cron_expression,
+        "enabled": schedule.enabled,
+        "created_at": schedule.created_at
+    }
 
 
 @router.get("/{schedule_id}", response_model=ScheduleResponse)
@@ -55,7 +84,16 @@ async def get_schedule(schedule_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Schedule with ID {schedule_id} not found"
         )
-    return schedule
+    return {
+        "id": schedule.id,
+        "name": schedule.name,
+        "display_ids": [sd.display_id for sd in schedule.schedule_displays],
+        "group_ids": [sg.group_id for sg in schedule.schedule_groups],
+        "action": schedule.action,
+        "cron_expression": schedule.cron_expression,
+        "enabled": schedule.enabled,
+        "created_at": schedule.created_at
+    }
 
 
 @router.put("/{schedule_id}", response_model=ScheduleResponse)
@@ -71,6 +109,21 @@ async def update_schedule(
         )
     
     update_data = schedule_data.model_dump(exclude_unset=True)
+    
+    if 'display_ids' in update_data:
+        display_ids = update_data.pop('display_ids')
+        db.query(ScheduleDisplay).filter(ScheduleDisplay.schedule_id == schedule_id).delete()
+        for display_id in display_ids:
+            schedule_display = ScheduleDisplay(schedule_id=schedule_id, display_id=display_id)
+            db.add(schedule_display)
+    
+    if 'group_ids' in update_data:
+        group_ids = update_data.pop('group_ids')
+        db.query(ScheduleGroup).filter(ScheduleGroup.schedule_id == schedule_id).delete()
+        for group_id in group_ids:
+            schedule_group = ScheduleGroup(schedule_id=schedule_id, group_id=group_id)
+            db.add(schedule_group)
+    
     for field, value in update_data.items():
         setattr(schedule, field, value)
     
@@ -82,7 +135,16 @@ async def update_schedule(
         logger.info(f"Reloading scheduler after updating schedule '{schedule.name}' (id={schedule.id})")
         request.app.state.scheduler.reload_schedules()
     
-    return schedule
+    return {
+        "id": schedule.id,
+        "name": schedule.name,
+        "display_ids": [sd.display_id for sd in schedule.schedule_displays],
+        "group_ids": [sg.group_id for sg in schedule.schedule_groups],
+        "action": schedule.action,
+        "cron_expression": schedule.cron_expression,
+        "enabled": schedule.enabled,
+        "created_at": schedule.created_at
+    }
 
 
 @router.delete("/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT)

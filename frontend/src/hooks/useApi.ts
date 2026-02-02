@@ -70,7 +70,7 @@ export const usePowerControl = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, state }: { id: number; state: 'on' | 'off' }) => {
-      const { data } = await apiClient.post(`/displays/${id}/power`, { state });
+      const { data } = await apiClient.post(`/displays/${id}/power`, { on: state === 'on' });
       return data;
     },
     onSuccess: () => {
@@ -163,7 +163,7 @@ export const useGroupPowerControl = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, state }: { id: number; state: 'on' | 'off' }) => {
-      const { data } = await apiClient.post(`/groups/${id}/power`, { state });
+      const { data } = await apiClient.post(`/groups/${id}/power`, { on: state === 'on' });
       return data;
     },
     onSuccess: () => {

@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 import os
 import secrets
+import logging
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,12 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from app.api import displays, groups, schedules
 from app.services.scheduler import SchedulerService
 from app.db.database import SessionLocal
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 security = HTTPBasic()
 
@@ -50,19 +57,20 @@ async def lifespan(app: FastAPI):
     - Startup: Initialize and start scheduler
     - Shutdown: Stop scheduler
     """
-    # Startup: Initialize scheduler
+    logger.info("=== APPLICATION STARTUP ===")
     db = SessionLocal()
     try:
+        logger.info("Initializing scheduler service...")
         scheduler = SchedulerService(db_session=db)
         scheduler.load_schedules_from_db()
         scheduler.start()
+        logger.info("Scheduler started successfully")
         
-        # Store scheduler in app state for access by endpoints
         app.state.scheduler = scheduler
         
         yield
     finally:
-        # Shutdown: Stop scheduler
+        logger.info("=== APPLICATION SHUTDOWN ===")
         if hasattr(app.state, "scheduler"):
             app.state.scheduler.stop()
         db.close()

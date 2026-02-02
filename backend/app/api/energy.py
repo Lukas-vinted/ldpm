@@ -19,27 +19,25 @@ router = APIRouter(prefix="/energy", tags=["energy"])
 
 
 # Constants for Sony BRAVIA power consumption
-POWER_ON_WATTS = 100.0  # Typical power consumption when TV is ON
-POWER_STANDBY_WATTS = 0.5  # Typical power consumption in standby mode
-COST_PER_KWH = 0.12  # Cost per kilowatt-hour in USD
-CO2_PER_KWH = 0.4  # kg CO2 per kWh
+POWER_ON_WATTS = 100.0
+POWER_STANDBY_WATTS = 0.5
+COST_PER_KWH = 0.12
+CO2_PER_KWH = 0.4
 
 
 class DisplaySavings(BaseModel):
-    """Energy savings for a single display."""
     display_id: int
     display_name: str
     total_hours_off: float
     energy_saved_kwh: float
-    cost_saved_usd: float
+    cost_saved_eur: float
     co2_reduced_kg: float
 
 
 class EnergySavingsResponse(BaseModel):
-    """Response model for energy savings calculation."""
     total_hours_off: float
     energy_saved_kwh: float
-    cost_saved_usd: float
+    cost_saved_eur: float
     co2_reduced_kg: float
     start_date: Optional[str]
     end_date: Optional[str]
@@ -130,7 +128,7 @@ async def calculate_energy_savings(
         power_saved_watts = POWER_ON_WATTS - POWER_STANDBY_WATTS  # 99.5W
         energy_saved_wh = hours_off * power_saved_watts
         energy_saved_kwh = energy_saved_wh / 1000
-        cost_saved_usd = energy_saved_kwh * COST_PER_KWH
+        cost_saved_eur = energy_saved_kwh * COST_PER_KWH
         co2_reduced_kg = energy_saved_kwh * CO2_PER_KWH
         
         # Get display name
@@ -142,20 +140,20 @@ async def calculate_energy_savings(
             display_name=display_name,
             total_hours_off=round(hours_off, 2),
             energy_saved_kwh=round(energy_saved_kwh, 2),
-            cost_saved_usd=round(cost_saved_usd, 2),
+            cost_saved_eur=round(cost_saved_eur, 2),
             co2_reduced_kg=round(co2_reduced_kg, 2)
         )
     
     # Calculate totals
     total_hours_off = sum(d.total_hours_off for d in display_savings_map.values())
     total_energy_kwh = sum(d.energy_saved_kwh for d in display_savings_map.values())
-    total_cost_usd = sum(d.cost_saved_usd for d in display_savings_map.values())
+    total_cost_eur = sum(d.cost_saved_eur for d in display_savings_map.values())
     total_co2_kg = sum(d.co2_reduced_kg for d in display_savings_map.values())
     
     return EnergySavingsResponse(
         total_hours_off=round(total_hours_off, 2),
         energy_saved_kwh=round(total_energy_kwh, 2),
-        cost_saved_usd=round(total_cost_usd, 2),
+        cost_saved_eur=round(total_cost_eur, 2),
         co2_reduced_kg=round(total_co2_kg, 2),
         start_date=start_date,
         end_date=end_date,

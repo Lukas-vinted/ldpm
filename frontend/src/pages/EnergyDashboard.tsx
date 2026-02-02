@@ -1,19 +1,19 @@
 import { useState, useMemo } from 'react';
-import { Leaf, DollarSign, Clock, TreePine, Calendar, Zap } from 'lucide-react';
+import { Leaf, Euro, Clock, TreePine, Calendar, Zap } from 'lucide-react';
 
 interface DisplaySavings {
   display_id: number;
   display_name: string;
   total_hours_off: number;
   energy_saved_kwh: number;
-  cost_saved_usd: number;
+  cost_saved_eur: number;
   co2_reduced_kg: number;
 }
 
 interface EnergySavingsData {
   total_hours_off: number;
   energy_saved_kwh: number;
-  cost_saved_usd: number;
+  cost_saved_eur: number;
   co2_reduced_kg: number;
   start_date: string | null;
   end_date: string | null;
@@ -216,19 +216,19 @@ function EnergyDashboard() {
               <div className="group bg-gradient-to-br from-amber-500 to-orange-600 rounded-3xl p-8 shadow-2xl shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-105 transition-all duration-300">
                 <div className="flex items-center justify-between mb-6">
                   <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <DollarSign className="w-7 h-7 text-white" />
+                    <Euro className="w-7 h-7 text-white" />
                   </div>
                   <div className="text-right">
                     <p className="text-amber-100 text-sm font-semibold uppercase tracking-wider">Cost Saved</p>
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-black text-white">${energyData.cost_saved_usd.toFixed(2)}</span>
-                  <span className="text-2xl font-bold text-amber-100">USD</span>
+                  <span className="text-5xl font-black text-white">€{energyData.cost_saved_eur.toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-amber-100">EUR</span>
                 </div>
                 <div className="mt-4 pt-4 border-t border-white/20">
                   <p className="text-amber-50 text-sm">
-                    Based on $0.12 per kWh rate
+                    Based on €0.12 per kWh rate
                   </p>
                 </div>
               </div>
@@ -301,7 +301,7 @@ function EnergyDashboard() {
                         </div>
                         <div>
                           <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                            ${display.cost_saved_usd.toFixed(2)}
+                            €{display.cost_saved_eur.toFixed(2)}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Savings</p>
                         </div>

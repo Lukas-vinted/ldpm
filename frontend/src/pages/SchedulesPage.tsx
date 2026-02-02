@@ -1,16 +1,36 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { ScheduleCard } from '../components';
+import { ScheduleCard } from '../components/ScheduleCard';
 import { CreateScheduleModal } from '../components/CreateScheduleModal';
-import { useSchedules, useToggleSchedule } from '../hooks/useApi';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { useSchedules, useToggleSchedule, useDeleteSchedule } from '../hooks/useApi';
 
 export default function SchedulesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; name: string } | null>(null);
   const { data: schedules, isLoading, error } = useSchedules();
   const toggleMutation = useToggleSchedule();
+  const deleteMutation = useDeleteSchedule();
 
-  const handleToggleEnabled = (id: number, enabled: boolean) => {
+  const handleToggle = (id: number, enabled: boolean) => {
     toggleMutation.mutate({ id, enabled });
+  };
+
+  const handleDeleteClick = (id: number) => {
+    const schedule = schedules?.find(s => s.id === id);
+    if (schedule) {
+      setDeleteConfirm({ id, name: schedule.name });
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteConfirm) {
+      deleteMutation.mutate(deleteConfirm.id, {
+        onSuccess: () => {
+          setDeleteConfirm(null);
+        },
+      });
+    }
   };
 
   if (isLoading) {
@@ -38,21 +58,22 @@ export default function SchedulesPage() {
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span>Create Schedule</span>
+          <span>Add Schedule</span>
         </button>
       </div>
 
       {!schedules || schedules.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center">
-          <p className="text-gray-600 dark:text-gray-400">No schedules defined yet. Create schedules to automate power control.</p>
+          <p className="text-gray-600 dark:text-gray-400">No schedules configured yet. Add schedules to automate power control.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {schedules.map((schedule) => (
             <ScheduleCard
               key={schedule.id}
               schedule={schedule}
-              onToggleEnabled={handleToggleEnabled}
+              onToggle={handleToggle}
+              onDelete={handleDeleteClick}
               isLoading={toggleMutation.isPending}
             />
           ))}
@@ -62,6 +83,16 @@ export default function SchedulesPage() {
       <CreateScheduleModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+      />
+
+      <ConfirmDeleteModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Schedule"
+        message="Are you sure you want to delete this schedule?"
+        itemName={deleteConfirm?.name}
+        isDeleting={deleteMutation.isPending}
       />
     </div>
   );

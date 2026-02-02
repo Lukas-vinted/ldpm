@@ -4,23 +4,36 @@ import { DisplayCard } from '../components';
 import { AddDisplayModal } from '../components/AddDisplayModal';
 import { ImportCSVModal } from '../components/ImportCSVModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
-import { useDisplays, useDisplaysWithStatus, usePowerControl, useDeleteDisplay } from '../hooks/useApi';
+import { useDisplays, usePowerControl, useDeleteDisplay } from '../hooks/useApi';
+import { useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../api/client';
+import { Display } from '../types';
 
 export default function DisplaysPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; name: string } | null>(null);
   const { data: displays, isLoading, error } = useDisplays();
-  const { refetch: refetchWithStatus } = useDisplaysWithStatus();
+  const queryClient = useQueryClient();
   const powerMutation = usePowerControl();
   const deleteMutation = useDeleteDisplay();
 
   useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const { data } = await apiClient.get<Display[]>('/displays?fetch_status=true');
+        queryClient.setQueryData(['displays'], data);
+      } catch (err) {
+        console.error('Failed to fetch display status:', err);
+      }
+    };
+
     const timer = setTimeout(() => {
-      refetchWithStatus();
+      fetchStatus();
     }, 500);
+
     return () => clearTimeout(timer);
-  }, [refetchWithStatus]);
+  }, [queryClient]);
 
   const handlePowerToggle = (id: number, state: 'on' | 'off') => {
     powerMutation.mutate({ id, state });

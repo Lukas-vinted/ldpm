@@ -17,18 +17,6 @@ export const useDisplays = () => {
   });
 };
 
-export const useDisplaysWithStatus = () => {
-  return useQuery({
-    queryKey: ['displays-with-status'],
-    queryFn: async () => {
-      const { data } = await apiClient.get<Display[]>('/displays?fetch_status=true');
-      return data;
-    },
-    refetchInterval: false,
-    staleTime: 0,
-  });
-};
-
 export const useDisplay = (id: number) => {
   return useQuery({
     queryKey: ['displays', id],

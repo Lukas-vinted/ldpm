@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { ScheduleCard } from '../components/ScheduleCard';
 import { CreateScheduleModal } from '../components/CreateScheduleModal';
+import { EditScheduleModal } from '../components/EditScheduleModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 import { useSchedules, useToggleSchedule, useDeleteSchedule } from '../hooks/useApi';
+import { Schedule } from '../types';
 
 export default function SchedulesPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editSchedule, setEditSchedule] = useState<Schedule | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; name: string } | null>(null);
   const { data: schedules, isLoading, error } = useSchedules();
   const toggleMutation = useToggleSchedule();
@@ -14,6 +17,13 @@ export default function SchedulesPage() {
 
   const handleToggle = (id: number, enabled: boolean) => {
     toggleMutation.mutate({ id, enabled });
+  };
+
+  const handleEditClick = (id: number) => {
+    const schedule = schedules?.find(s => s.id === id);
+    if (schedule) {
+      setEditSchedule(schedule);
+    }
   };
 
   const handleDeleteClick = (id: number) => {
@@ -54,7 +64,7 @@ export default function SchedulesPage() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Schedules</h2>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setIsCreateModalOpen(true)}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -73,6 +83,7 @@ export default function SchedulesPage() {
               key={schedule.id}
               schedule={schedule}
               onToggle={handleToggle}
+              onEdit={handleEditClick}
               onDelete={handleDeleteClick}
               isLoading={toggleMutation.isPending}
             />
@@ -81,8 +92,14 @@ export default function SchedulesPage() {
       )}
 
       <CreateScheduleModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+      />
+
+      <EditScheduleModal
+        isOpen={!!editSchedule}
+        onClose={() => setEditSchedule(null)}
+        schedule={editSchedule}
       />
 
       <ConfirmDeleteModal

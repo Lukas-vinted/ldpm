@@ -1,10 +1,11 @@
 import React from 'react';
-import { Calendar, Power, Clock, Trash2 } from 'lucide-react';
+import { Calendar, Power, Clock, Trash2, Edit } from 'lucide-react';
 import { Schedule } from '../types';
 
 interface ScheduleCardProps {
   schedule: Schedule;
   onToggle?: (id: number, enabled: boolean) => void;
+  onEdit?: (id: number) => void;
   onDelete?: (id: number) => void;
   isLoading?: boolean;
 }
@@ -12,12 +13,20 @@ interface ScheduleCardProps {
 export const ScheduleCard: React.FC<ScheduleCardProps> = ({ 
   schedule, 
   onToggle,
+  onEdit,
   onDelete,
   isLoading = false 
 }) => {
   const handleToggle = () => {
     if (onToggle && !isLoading) {
       onToggle(schedule.id, !schedule.enabled);
+    }
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEdit) {
+      onEdit(schedule.id);
     }
   };
 
@@ -89,6 +98,15 @@ export const ScheduleCard: React.FC<ScheduleCardProps> = ({
                   schedule.enabled ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
+            </button>
+          )}
+          {onEdit && (
+            <button
+              onClick={handleEdit}
+              className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Edit schedule"
+            >
+              <Edit className="w-5 h-5" />
             </button>
           )}
           {onDelete && (

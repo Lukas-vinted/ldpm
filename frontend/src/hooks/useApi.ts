@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
-import { Display, Group, Schedule } from '../types';
+import { Display, Group, Schedule, ActivityLog } from '../types';
 
 // ============================================
 // DISPLAY HOOKS
@@ -314,5 +314,35 @@ export const useEnergySavings = (startDate?: string, endDate?: string) => {
       );
       return data;
     },
+  });
+};
+
+// ============================================
+// ACTIVITY LOG HOOKS
+// ============================================
+
+export const useActivityLogs = (params?: {
+  limit?: number;
+  offset?: number;
+  display_id?: number;
+  action?: 'on' | 'off';
+  hours?: number;
+}) => {
+  return useQuery({
+    queryKey: ['activity-logs', params],
+    queryFn: async () => {
+      const queryParams = new URLSearchParams();
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.offset) queryParams.append('offset', params.offset.toString());
+      if (params?.display_id) queryParams.append('display_id', params.display_id.toString());
+      if (params?.action) queryParams.append('action', params.action);
+      if (params?.hours) queryParams.append('hours', params.hours.toString());
+
+      const { data } = await apiClient.get<ActivityLog[]>(
+        `/activity?${queryParams.toString()}`
+      );
+      return data;
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 };

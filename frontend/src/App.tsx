@@ -6,6 +6,7 @@ import DisplaysPage from './pages/DisplaysPage'
 import GroupsPage from './pages/GroupsPage'
 import SchedulesPage from './pages/SchedulesPage'
 import EnergyDashboard from './pages/EnergyDashboard'
+import ActivityLogPage from './pages/ActivityLogPage'
 import LoginPage from './pages/LoginPage'
 import { ThemeProvider, useTheme } from './contexts/ThemeContext'
 import './App.css'
@@ -69,6 +70,9 @@ function Navigation() {
             <Link to="/energy" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
               Energy Savings
             </Link>
+            <Link to="/activity" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+              Activity Log
+            </Link>
             <button
               onClick={handleThemeToggle}
               className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 active:scale-95"
@@ -111,6 +115,7 @@ function App() {
                       <Route path="/groups" element={<GroupsPage />} />
                       <Route path="/schedules" element={<SchedulesPage />} />
                       <Route path="/energy" element={<EnergyDashboard />} />
+                      <Route path="/activity" element={<ActivityLogPage />} />
                     </Routes>
                   </main>
                 </div>

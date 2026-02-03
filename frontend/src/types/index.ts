@@ -28,3 +28,12 @@ export interface Schedule {
   group_ids: number[];
   created_at: string;
 }
+
+export interface ActivityLog {
+  id: number;
+  display_id: number;
+  display_name: string;
+  action: 'on' | 'off';
+  timestamp: string;
+  source: 'manual' | 'schedule' | 'api';
+}

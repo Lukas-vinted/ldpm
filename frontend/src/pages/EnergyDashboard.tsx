@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Leaf, Euro, Clock, TreePine, Calendar, Zap } from 'lucide-react';
 import { EnergyChartModal } from '../components/EnergyChartModal';
 
@@ -23,6 +23,14 @@ interface EnergySavingsData {
 
 type DateRange = 'today' | 'week' | 'month' | 'custom' | 'all';
 
+// Format currency to show 3 decimals if value is less than €0.01
+const formatCurrency = (value: number): string => {
+  if (value < 0.01 && value > 0) {
+    return `€${value.toFixed(3)}`;
+  }
+  return `€${value.toFixed(2)}`;
+};
+
 function EnergyDashboard() {
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [customStartDate, setCustomStartDate] = useState('');
@@ -31,6 +39,7 @@ function EnergyDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<'energy' | 'cost' | 'time' | 'co2' | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDisplayId, setSelectedDisplayId] = useState<number | 'all'>('all');
 
   const openChartModal = (metric: 'energy' | 'cost' | 'time' | 'co2') => {
     setSelectedMetric(metric);
@@ -78,7 +87,7 @@ function EnergyDashboard() {
   }, [dateRange, customStartDate, customEndDate]);
 
   // Fetch energy savings data
-  const fetchEnergySavings = async () => {
+  const fetchEnergySavings = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -101,14 +110,14 @@ function EnergyDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [startDate, endDate]);
 
   // Auto-fetch when date range changes (except custom until dates are entered)
-  useState(() => {
+  useEffect(() => {
     if (dateRange !== 'custom' || (customStartDate && customEndDate)) {
       fetchEnergySavings();
     }
-  });
+  }, [dateRange, customStartDate, customEndDate, fetchEnergySavings]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-950 dark:via-emerald-950 dark:to-teal-950 px-6 py-8">
@@ -222,7 +231,7 @@ function EnergyDashboard() {
                 </div>
                 <div className="mt-4 pt-4 border-t border-white/20">
                   <p className="text-emerald-50 text-sm">
-                    Equivalent to {Math.round(energyData.total_hours_off)} hours off-time
+                    Equivalent to {energyData.total_hours_off.toFixed(1)} hours off-time
                   </p>
                 </div>
               </div>
@@ -241,7 +250,7 @@ function EnergyDashboard() {
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-black text-white">€{energyData.cost_saved_eur.toFixed(2)}</span>
+                  <span className="text-5xl font-black text-white">{formatCurrency(energyData.cost_saved_eur).replace('€', '')}</span>
                   <span className="text-2xl font-bold text-amber-100">EUR</span>
                 </div>
                 <div className="mt-4 pt-4 border-t border-white/20">
@@ -265,12 +274,12 @@ function EnergyDashboard() {
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-black text-white">{Math.round(energyData.total_hours_off)}</span>
+                  <span className="text-5xl font-black text-white">{energyData.total_hours_off.toFixed(1)}</span>
                   <span className="text-2xl font-bold text-blue-100">hrs</span>
                 </div>
                 <div className="mt-4 pt-4 border-t border-white/20">
                   <p className="text-blue-50 text-sm">
-                    {Math.round(energyData.total_hours_off / 24)} days total off-time
+                    {(energyData.total_hours_off / 24).toFixed(1)} days total off-time
                   </p>
                 </div>
               </div>
@@ -303,9 +312,33 @@ function EnergyDashboard() {
             {/* Display Breakdown */}
             {energyData.displays.length > 0 && (
               <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-emerald-100 dark:border-emerald-900/30 p-8">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Savings by Display</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Savings by Display
+                    <span className="text-lg font-normal text-gray-500 dark:text-gray-400 ml-3">
+                      ({energyData.displays.length} total)
+                    </span>
+                  </h2>
+                  <div className="w-64">
+                    <select
+                      value={selectedDisplayId}
+                      onChange={(e) => setSelectedDisplayId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-semibold"
+                    >
+                      <option value="all">All Displays ({energyData.displays.length})</option>
+                      {energyData.displays.map((display) => (
+                        <option key={display.display_id} value={display.display_id}>
+                          {display.display_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 <div className="space-y-4">
-                  {energyData.displays.map((display) => (
+                  {(selectedDisplayId === 'all' 
+                    ? energyData.displays 
+                    : energyData.displays.filter(d => d.display_id === selectedDisplayId)
+                  ).map((display) => (
                     <div
                       key={display.display_id}
                       className="flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-emerald-50 dark:from-gray-800 dark:to-emerald-950/20 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all duration-200"
@@ -313,7 +346,7 @@ function EnergyDashboard() {
                       <div className="flex-1">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white">{display.display_name}</h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {Math.round(display.total_hours_off)} hours off-time
+                          {display.total_hours_off.toFixed(2)} hours off-time
                         </p>
                       </div>
                       <div className="flex gap-8 text-right">
@@ -325,7 +358,7 @@ function EnergyDashboard() {
                         </div>
                         <div>
                           <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                            €{display.cost_saved_eur.toFixed(2)}
+                            {formatCurrency(display.cost_saved_eur)}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Savings</p>
                         </div>

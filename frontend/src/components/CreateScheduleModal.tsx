@@ -34,9 +34,21 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({ isOpen
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const buildCronExpression = (): string => {
+    // Map weekday names to cron day numbers (0=Sunday, 1=Monday, ..., 6=Saturday)
+    const dayMap: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+
     const selectedDays = Object.entries(formData.weekdays)
-      .map(([, enabled], index) => enabled ? index : -1)
-      .filter(day => day !== -1);
+      .filter(([, enabled]) => enabled)
+      .map(([day]) => dayMap[day])
+      .sort((a, b) => a - b);
 
     const dayOfWeek = selectedDays.length === 0 ? '*' : selectedDays.join(',');
     return `${formData.minute} ${formData.hour} * * ${dayOfWeek}`;

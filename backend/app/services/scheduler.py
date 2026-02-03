@@ -167,8 +167,8 @@ class SchedulerService:
             else:
                 logger.error(f"Group not found for schedule {schedule_id}")
         
-        success = True
-        error_message = None
+        failed_displays = []
+        success_count = 0
         
         try:
             for display in displays_to_control:
@@ -177,28 +177,36 @@ class SchedulerService:
                     f"'{display.name}' ({display.ip_address})"
                 )
                 
-                result = await self.adapter.set_power(display.ip_address, display.psk, power_on)
-                
-                if result:
-                    power_log = PowerLog(
-                        display_id=display.id,
-                        action="on" if power_on else "off",
-                        timestamp=datetime.utcnow(),
-                        source="schedule"
-                    )
-                    self.db.add(power_log)
-                else:
-                    success = False
-                    error_message = f"Failed to execute power command on display '{display.name}'"
-                    logger.error(error_message)
-                    break
+                try:
+                    result = await self.adapter.set_power(display.ip_address, display.psk, power_on)
+                    
+                    if result:
+                        power_log = PowerLog(
+                            display_id=display.id,
+                            action="on" if power_on else "off",
+                            timestamp=datetime.utcnow(),
+                            source="schedule"
+                        )
+                        self.db.add(power_log)
+                        success_count += 1
+                    else:
+                        failed_displays.append(display.name)
+                        logger.error(f"Failed to execute power command on display '{display.name}'")
+                except Exception as e:
+                    failed_displays.append(display.name)
+                    logger.error(f"Exception controlling display '{display.name}': {e}")
             
-            if success:
-                logger.info(f"Successfully executed schedule {schedule_id}")
+            success = len(failed_displays) == 0
+            error_message = None if success else f"Failed on {len(failed_displays)} display(s): {', '.join(failed_displays)}"
+            
+            logger.info(
+                f"Schedule {schedule_id} execution complete: "
+                f"{success_count}/{len(displays_to_control)} succeeded"
+            )
         
         except Exception as e:
             success = False
-            error_message = str(e)
+            error_message = f"Scheduler exception: {str(e)}"
             logger.error(f"Exception during schedule {schedule_id} execution: {e}")
         
         # Log execution to database

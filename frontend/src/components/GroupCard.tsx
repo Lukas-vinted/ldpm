@@ -36,10 +36,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, onClick, onDelete, 
           <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{group.name}</h3>
-            {group.description && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{group.description}</p>
-            )}
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
               {group.display_count} {group.display_count === 1 ? 'display' : 'displays'}
             </p>
           </div>

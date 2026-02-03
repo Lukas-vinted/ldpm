@@ -139,9 +139,9 @@ async def calculate_energy_savings(
             display_id=disp_id,
             display_name=display_name,
             total_hours_off=round(hours_off, 2),
-            energy_saved_kwh=round(energy_saved_kwh, 2),
-            cost_saved_eur=round(cost_saved_eur, 2),
-            co2_reduced_kg=round(co2_reduced_kg, 2)
+            energy_saved_kwh=round(energy_saved_kwh, 3),
+            cost_saved_eur=round(cost_saved_eur, 3),
+            co2_reduced_kg=round(co2_reduced_kg, 3)
         )
     
     # Calculate totals
@@ -152,9 +152,9 @@ async def calculate_energy_savings(
     
     return EnergySavingsResponse(
         total_hours_off=round(total_hours_off, 2),
-        energy_saved_kwh=round(total_energy_kwh, 2),
-        cost_saved_eur=round(total_cost_eur, 2),
-        co2_reduced_kg=round(total_co2_kg, 2),
+        energy_saved_kwh=round(total_energy_kwh, 3),
+        cost_saved_eur=round(total_cost_eur, 3),
+        co2_reduced_kg=round(total_co2_kg, 3),
         start_date=start_date,
         end_date=end_date,
         displays=list(display_savings_map.values())

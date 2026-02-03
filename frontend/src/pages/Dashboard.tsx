@@ -8,7 +8,7 @@ export default function Dashboard() {
 
   const activeDisplays = displays?.filter(d => d.status === 'active').length || 0;
   const standbyDisplays = displays?.filter(d => d.status === 'standby').length || 0;
-  const offlineDisplays = displays?.filter(d => d.status === 'offline').length || 0;
+  const offlineDisplays = displays?.filter(d => d.status === 'offline' || d.status === 'error').length || 0;
   const enabledSchedules = schedules?.filter(s => s.enabled).length || 0;
 
   const stats = [

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { GroupCard } from '../components';
 import { CreateGroupModal } from '../components/CreateGroupModal';
@@ -13,6 +13,15 @@ export default function GroupsPage() {
   const [manageGroup, setManageGroup] = useState<Group | null>(null);
   const { data: groups, isLoading, error } = useGroups();
   const deleteMutation = useDeleteGroup();
+
+  useEffect(() => {
+    if (manageGroup && groups) {
+      const updatedGroup = groups.find(g => g.id === manageGroup.id);
+      if (updatedGroup) {
+        setManageGroup(updatedGroup);
+      }
+    }
+  }, [groups, manageGroup?.id]);
 
   const handleDeleteClick = (id: number) => {
     const group = groups?.find(g => g.id === id);
